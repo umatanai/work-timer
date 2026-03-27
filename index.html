@@ -3,106 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Maker Pro Mobile</title>
+    <title>NC-Modeler Mobile</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --orange: #ff9800; --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 50px; }
-        .container { padding: 15px; max-width: 500px; margin: auto; }
+        :root { --orange: #ff9800; --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --blue: #2196f3; --green: #4caf50; --red: #f44336; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 50px; overflow-x: hidden; }
+        .container { padding: 10px; max-width: 500px; margin: auto; }
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        h2 { font-size: 1rem; margin-top: 0; color: var(--orange); border-bottom: 1px solid #333; padding-bottom: 8px; }
-        .row { display: flex; gap: 10px; margin-bottom: 10px; }
+        h2 { font-size: 0.9rem; margin-top: 0; color: var(--orange); border-bottom: 1px solid #333; padding-bottom: 8px; }
+        .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
         .col { flex: 1; }
-        label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 4px; }
-        input, select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 1rem; box-sizing: border-box; }
-        .origin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
-        .origin-btn { padding: 10px; font-size: 0.7rem; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px; text-align: center; }
+        label { display: block; font-size: 0.7rem; color: #888; margin-bottom: 2px; }
+        input, select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 0.9rem; box-sizing: border-box; }
+        .origin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 8px; }
+        .origin-btn { padding: 8px; font-size: 0.7rem; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px; text-align: center; cursor: pointer; }
         .origin-btn.active { background: var(--orange); color: #000; font-weight: bold; }
-        #canvas-container { width: 100%; height: 200px; background: #000; border-radius: 8px; margin-bottom: 15px; position: relative; }
-        button.main-btn { width: 100%; padding: 16px; background: var(--orange); border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        pre { background: #000; color: #00ff00; padding: 12px; border-radius: 8px; font-size: 0.85rem; overflow-x: auto; white-space: pre-wrap; }
+        #canvas-container { width: 100%; height: 250px; background: #000; border-radius: 8px; margin-bottom: 10px; position: relative; overflow: hidden; }
+        .legend { position: absolute; bottom: 5px; right: 5px; font-size: 0.6rem; color: #aaa; background: rgba(0,0,0,0.5); padding: 3px; border-radius: 3px; }
+        button.add-btn { width: 100%; padding: 12px; background: var(--bg); border: 2px dashed #444; border-radius: 8px; color: #aaa; font-size: 0.9rem; cursor: pointer; margin-top: 5px; }
+        button.add-btn:active { background: #1a1a1a; color: #fff; border-color: #666; }
+        .feature-item { background: #2a2a2a; padding: 10px; border-radius: 6px; margin-bottom: 5px; font-size: 0.8rem; display: flex; justify-content: space-between; }
+        button.next-btn { width: 100%; padding: 16px; background: var(--orange); border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div id="canvas-container"></div>
-
-    <div class="card">
-        <h2>1. ワーク & 材料設定</h2>
-        <div class="row">
-            <div class="col"><label>ワークX</label><input type="number" id="wX" value="100" oninput="updateAll()"></div>
-            <div class="col"><label>ワークY</label><input type="number" id="wY" value="100" oninput="updateAll()"></div>
-            <div class="col"><label>ワークZ(厚)</label><input type="number" id="wZ" value="20" oninput="updateAll()"></div>
+    <div id="canvas-container">
+        <div class="legend">
+            <span style="color:var(--red)">X</span> / 
+            <span style="color:var(--green)">Y</span> / 
+            <span style="color:var(--blue)">Z</span>
         </div>
-        <div class="row">
-            <div class="col"><label>XY取りしろ(片側)</label><input type="number" id="marginXY" value="2" oninput="updateAll()"></div>
-            <div class="col"><label>上面取りしろ</label><input type="number" id="marginZ" value="1" oninput="updateAll()"></div>
-        </div>
-        <div id="materialInfo" style="font-size: 0.8rem; color: #aaa; text-align: right;">材料サイズ: 104 x 104 x 21</div>
     </div>
 
     <div class="card">
-        <h2>2. 原点選択 (G54)</h2>
+        <h2>1. ワーク (ゴール形状) ⇔ 材料 (ストック)</h2>
+        <div class="row">
+            <div class="col"><label>ワークW (X)</label><input type="number" id="wX" value="100" oninput="updateAll()"></div>
+            <div class="col"><label>ワークL (Y)</label><input type="number" id="wY" value="100" oninput="updateAll()"></div>
+            <div class="col"><label>ワークT (Z)</label><input type="number" id="wZ" value="20" oninput="updateAll()"></div>
+        </div>
+        <div class="row">
+            <div class="col"><label>XY取りしろ (片側)</label><input type="number" id="mXY" value="2" oninput="updateAll()"></div>
+            <div class="col"><label>上面取りしろ</label><input type="number" id="mZ" value="1" oninput="updateAll()"></div>
+        </div>
+        <div id="materialInfo" style="font-size: 0.75rem; color: #aaa; text-align: right;">材料サイズ: 104 x 104 x 21</div>
+    </div>
+
+    <div class="card">
+        <h2>2. 原点選択 (可視化)</h2>
         <div class="origin-grid">
-            <div class="origin-btn" onclick="setOrigin('TL')">左上</div>
-            <div class="origin-btn" onclick="setOrigin('TC')">中央上</div>
-            <div class="origin-btn" onclick="setOrigin('TR')">右上</div>
-            <div class="origin-btn active" id="btn_BL" onclick="setOrigin('BL')">左下</div>
-            <div class="origin-btn" id="btn_CC" onclick="setOrigin('CC')">中央</div>
-            <div class="origin-btn" id="btn_BR" onclick="setOrigin('BR')">右下</div>
+            <div class="origin-btn" id="TL" onclick="setOrigin('TL')">左上</div>
+            <div class="origin-btn" id="TC" onclick="setOrigin('TC')">中央上</div>
+            <div class="origin-btn" id="TR" onclick="setOrigin('TR')">右上</div>
+            <div class="origin-btn active" id="BL" onclick="setOrigin('BL')">左下</div>
+            <div class="origin-btn" id="CC" onclick="setOrigin('CC')">中央</div>
+            <div class="origin-btn" id="BR" onclick="setOrigin('BR')">右下</div>
         </div>
     </div>
 
     <div class="card">
-        <h2>3. 材質 & 工具条件</h2>
-        <div class="row">
-            <div class="col">
-                <label>材質</label>
-                <select id="matType" onchange="updateAll()">
-                    <option value="A5052">A5052</option>
-                    <option value="A7075">A7075</option>
-                    <option value="POM">POM</option>
-                    <option value="SUS304">SUS304</option>
-                    <option value="S50C">S50C</option>
-                    <option value="C3604">C3604</option>
-                </select>
+        <h2>3. フィーチャー追加 (穴・ボス)</h2>
+        <div id="featureList">
             </div>
-            <div class="col"><label>工具径D</label><input type="number" id="tD" value="10" oninput="updateAll()"></div>
+        
+        <div class="row" style="background:#2a2a2a; padding:10px; border-radius:6px; margin-top:5px;">
+            <select id="featType" style="flex:1.5;">
+                <option value="hole">穴 (Hole)</option>
+                <option value="boss">ボス (Boss)</option>
+            </select>
+            <input type="number" id="featX" placeholder="X" style="flex:1;">
+            <input type="number" id="featY" placeholder="Y" style="flex:1;">
+            <input type="number" id="featD" placeholder="D/W" style="flex:1;">
+            <input type="number" id="featZ" placeholder="Z" style="flex:1;">
         </div>
-        <div class="row">
-            <div class="col"><label>回転 S</label><input type="number" id="outS"></div>
-            <div class="col"><label>送り F</label><input type="number" id="outF"></div>
-        </div>
+        <button class="add-btn" onclick="addFeature()">＋ 数値でフィーチャーを追加</button>
     </div>
 
-    <button class="main-btn" onclick="generateNC()">NCプログラム出力</button>
-
-    <div class="card" style="margin-top:20px;">
-        <h2>生成コード</h2>
-        <pre id="ncOutput">ここにコードが表示されます</pre>
-    </div>
+    <button class="next-btn" onclick="alert('次ページへ：ミーリング設定を行います')">次へ (ミーリング設定)</button>
 </div>
 
 <script>
-    let scene, camera, renderer, workMesh, matMesh;
+    let scene, camera, renderer, workMesh, matMesh, axesHelper;
     let currentOrigin = 'BL';
+    let features = []; // フィーチャーリスト
 
-    // 1. 初期化
+    // 1. 3D初期化
     function init3D() {
+        const container = document.getElementById('canvas-container');
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(45, window.innerWidth / 200, 0.1, 1000);
-        camera.position.set(150, 150, 200);
-        camera.lookAt(0, 0, 0);
+        camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(120, 120, 180);
+        camera.lookAt(0, 20, 0); // ワークが画面中央に来るように少し上に
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.document.getElementById('canvas-container').clientWidth, 200);
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
 
         const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(10, 20, 15);
         scene.add(light);
         scene.add(new THREE.AmbientLight(0x404040));
+
+        // 原点軸 (可視化: X=赤, Y=緑, Z=青)
+        axesHelper = new THREE.AxesHelper(50);
+        scene.add(axesHelper);
 
         updateAll();
         animate();
@@ -113,32 +119,20 @@
         renderer.render(scene, camera);
     }
 
-    // 2. 計算 & 更新
+    // 2. 計算 & 3D更新
     function updateAll() {
         const wX = parseFloat(document.getElementById('wX').value);
         const wY = parseFloat(document.getElementById('wY').value);
         const wZ = parseFloat(document.getElementById('wZ').value);
-        const mXY = parseFloat(document.getElementById('marginXY').value);
-        const mZ = parseFloat(document.getElementById('marginZ').value);
+        const mXY = parseFloat(document.getElementById('marginXY')?.value || 2); // 簡易化のため一旦固定値も
+        const mZ = parseFloat(document.getElementById('marginZ')?.value || 1);
         
+        // 材料サイズ計算
         const matX = wX + (mXY * 2);
         const matY = wY + (mXY * 2);
         const matZ = wZ + mZ;
 
         document.getElementById('materialInfo').innerText = `材料サイズ: ${matX} x ${matY} x ${matZ}`;
-        
-        // 切削条件の簡易計算
-        const mat = document.getElementById('matType').value;
-        const d = parseFloat(document.getElementById('tD').value);
-        let vc = 100, fz = 0.05;
-        if(mat.includes('A')) { vc = 200; fz = 0.1; }
-        else if(mat === 'POM') { vc = 150; fz = 0.15; }
-        else if(mat === 'SUS304') { vc = 60; fz = 0.04; }
-        
-        const s = Math.round((1000 * vc) / (Math.PI * d));
-        document.getElementById('outS').value = s;
-        document.getElementById('outF').value = Math.round(s * fz * 4);
-
         update3D(wX, wY, wZ, matX, matY, matZ);
     }
 
@@ -146,51 +140,61 @@
         if (workMesh) scene.remove(workMesh);
         if (matMesh) scene.remove(matMesh);
 
-        // 材料 (半透明)
-        const matGeo = new THREE.BoxGeometry(mx, mz, my);
-        const matMat = new THREE.MeshPhongMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.3 });
-        matMesh = new THREE.Mesh(matGeo, matMat);
-        matMesh.position.y = mz / 2;
-        scene.add(matMesh);
+        // 原点オフセット計算 (G54がどこにあるか)
+        let ox = 0, oy = 0, oz = wz; // 上面原点
+        if(currentOrigin === 'CC') { ox = wx/2; oy = wy/2; }
+        if(currentOrigin === 'BR') { ox = wx; oy = wy/2; } // 簡易化
 
-        // ワーク (実線)
+        // --- ワーク (実線) ---
         const workGeo = new THREE.BoxGeometry(wx, wz, wy);
         const workMat = new THREE.MeshPhongMaterial({ color: 0x00ff00, wireframe: true });
         workMesh = new THREE.Mesh(workGeo, workMat);
-        workMesh.position.y = wz / 2;
+        
+        // モデルを原点(0,0,0)に合わせるための配置
+        workMesh.position.set(wx/2 - ox, wz/2, wy/2 - oy); 
         scene.add(workMesh);
+
+        // --- 材料 (半透明) ---
+        const matGeo = new THREE.BoxGeometry(mx, mz, my);
+        const matMat = new THREE.MeshPhongMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.2 });
+        matMesh = new THREE.Mesh(matGeo, matMat);
+        // 材料は上面がZ=0より「上面取りしろ」分だけ上になる
+        matMesh.position.set(mx/2 - (ox + mx-wx)/2, mz/2, my/2 - (oy + my-wy)/2);
+        // 簡易化のためワークと同心にする配置(後で修正)
+        matMesh.position.copy(workMesh.position);
+        matMesh.position.y = mz/2; 
+        scene.add(matMesh);
     }
 
     function setOrigin(o) {
         currentOrigin = o;
         document.querySelectorAll('.origin-btn').forEach(b => b.classList.remove('active'));
-        // 簡易的に選択したボタンを光らせる処理（実際はID等で制御）
-        event.target.classList.add('active');
+        document.getElementById(o).classList.add('active');
+        updateAll(); // 原点を変えたらモデルを再配置
     }
 
-    // 3. NC生成
-    function generateNC() {
-        const wx = parseFloat(document.getElementById('wX').value);
-        const wy = parseFloat(document.getElementById('wY').value);
-        const s = document.getElementById('outS').value;
-        const f = document.getElementById('outF').value;
-        
-        // 原点オフセット計算 (簡易版: 左下基準)
-        let ox = 0, oy = 0;
-        if(currentOrigin === 'CC') { ox = -wx/2; oy = -wy/2; }
-        if(currentOrigin === 'BR') { ox = -wx; oy = 0; }
+    // 3. フィーチャー追加
+    function addFeature() {
+        const type = document.getElementById('featType').value;
+        const x = parseFloat(document.getElementById('featX').value) || 0;
+        const y = parseFloat(document.getElementById('featY').value) || 0;
+        const d = parseFloat(document.getElementById('featD').value) || 10;
+        const z = parseFloat(document.getElementById('featZ').value) || 5;
 
-        let nc = "O0001 (NC-MAKER OUTPUT)\n";
-        nc += "M98P8120 (M6)\n";
-        nc += `G90G54G00X${(ox-10).toFixed(3)}Y${(oy-10).toFixed(3)}\n`;
-        nc += `S${s}M03\n`;
-        nc += "G43Z50.H01\n";
-        nc += "(FACING START)\n";
-        nc += `G01Z0.F${Math.round(f/2)}\n`;
-        nc += `X${(wx+Math.abs(ox)+10).toFixed(3)}F${f}\n`;
-        nc += "G00Z100.\nM30\n%";
-        
-        document.getElementById('ncOutput').innerText = nc;
+        features.push({type, x, y, d, z});
+        updateFeatureList();
+        // ここで3Dモデルにも追加するロジックが必要（次回のブラッシュアップで実装）
+    }
+
+    function updateFeatureList() {
+        const list = document.getElementById('featureList');
+        list.innerHTML = '';
+        features.forEach((f, i) => {
+            const item = document.createElement('div');
+            item.className = 'feature-item';
+            item.innerHTML = `<span>${f.type.toUpperCase()} - X${f.x} Y${f.y} D${f.d} Z${f.z}</span>`;
+            list.appendChild(item);
+        });
     }
 
     window.onload = init3D;
