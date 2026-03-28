@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler V9</title>
+    <title>NC-Modeler V10 - Precise Placement</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         :root { --orange: #ff9800; --bg: #0b0b0b; --card: #1a1a1a; --text: #eee; --red: #ff4444; --blue: #2196f3; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        #view-container { position: sticky; top: 0; width: 100%; height: 40vh; background: #000; z-index: 10; border-bottom: 2px solid #333; }
+        #view-container { position: sticky; top: 0; width: 100%; height: 38vh; background: #000; z-index: 10; border-bottom: 2px solid #333; }
         #settings-container { flex: 1; overflow-y: auto; padding: 15px; box-sizing: border-box; }
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
         h2 { font-size: 0.8rem; margin: 0 0 12px 0; color: var(--orange); border-bottom: 1px solid #444; padding-bottom: 6px; }
@@ -20,7 +20,7 @@
         .origin-selector { display: flex; gap: 10px; }
         .origin-btn { flex: 1; padding: 12px; background: #333; border-radius: 8px; text-align: center; font-size: 0.9rem; border: 1px solid #444; cursor: pointer; }
         .origin-btn.active { background: var(--orange); color: #000; font-weight: bold; border-color: var(--orange); }
-        .sign-btn { padding: 10px; background: #444; border: 1px solid #555; color: #fff; border-radius: 6px; cursor: pointer; min-width: 40px; }
+        .sign-btn { padding: 11px; background: #444; border: 1px solid #555; color: #fff; border-radius: 6px; cursor: pointer; min-width: 45px; }
         .add-btn { width: 100%; padding: 15px; background: var(--orange); border: none; border-radius: 8px; color: #000; font-weight: bold; margin-top: 5px; cursor: pointer; }
         .feat-item { background: #252525; padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--orange); }
         .proc-item { background: #1a2635; padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--blue); }
@@ -48,7 +48,7 @@
         <div class="row">
             <div class="col"><label>幅 X</label><input type="number" id="wX" value="100" oninput="draw()"></div>
             <div class="col"><label>長さ Y</label><input type="number" id="wY" value="100" oninput="draw()"></div>
-            <div class="col"><label>厚み Z</label><input type="number" id="wZ" value="20" oninput="draw()"></div>
+            <div class="col"><label>厚 Z</label><input type="number" id="wZ" value="20" oninput="draw()"></div>
             <div class="col"><label>面取C/R</label><input type="number" id="wCR" value="0" oninput="draw()"></div>
         </div>
     </div>
@@ -78,7 +78,7 @@
         <div class="row">
             <select id="fType" onchange="uiPocket()" style="flex:1.5;">
                 <option value="hole">穴/タップ</option>
-                <option value="pocket">ポケット(中心基準)</option>
+                <option value="pocket">ポケット(中心)</option>
             </select>
             <button class="sign-btn" id="sX" onclick="tSign('sX')">+</button>
             <input type="number" id="fX" placeholder="X" style="flex:1;">
@@ -87,13 +87,13 @@
         </div>
         <div id="pocketParams" style="display:none;">
             <div class="row">
-                <div class="col"><label>ポケット幅(X)</label><input type="number" id="pW" value="40"></div>
+                <div class="col"><label>幅(X)</label><input type="number" id="pW" value="40"></div>
                 <div class="col"><label>長さ(Y)</label><input type="number" id="pL" value="30"></div>
                 <div class="col"><label>隅R</label><input type="number" id="pR" value="5"></div>
             </div>
         </div>
         <div class="row">
-            <div class="col"><label id="labelD">Φ / M径</label><input type="text" id="fD" value="10"></div>
+            <div class="col"><label>Φ / M径</label><input type="text" id="fD" value="10"></div>
             <div class="col"><label>深さ Z (-)</label><input type="number" id="fZ" value="-10"></div>
         </div>
         <button class="add-btn" onclick="addFeature()">形状追加</button>
@@ -101,7 +101,7 @@
     </div>
 
     <div class="card">
-        <h2>5. 加工工程設定 & NC出力</h2>
+        <h2>5. 工程設定 & NC出力</h2>
         <div class="row">
             <select id="procType" style="flex:1.5;">
                 <option value="face">上面フェイス加工</option>
@@ -130,9 +130,10 @@
         const container = document.getElementById('view-container');
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 3000);
-        camera.position.set(180, 180, 180);
+        camera.position.set(150, 150, 150);
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         scene.add(new THREE.AmbientLight(0xaaaaaa, 0.6));
@@ -147,28 +148,11 @@
     }
 
     function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
-
-    function setOrigin(o) {
-        currentOrigin = o;
-        document.querySelectorAll('.origin-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn_' + o).classList.add('active');
-        draw();
-    }
-
+    function setOrigin(o) { currentOrigin = o; document.querySelectorAll('.origin-btn').forEach(b => b.classList.remove('active')); document.getElementById('btn_' + o).classList.add('active'); draw(); }
     function tSign(id) { const b = document.getElementById(id); b.innerText = b.innerText === '+' ? '-' : '+'; }
     function uiPocket() { document.getElementById('pocketParams').style.display = document.getElementById('fType').value === 'pocket' ? 'block' : 'none'; }
-
-    function addTool() {
-        const name = document.getElementById('tName').value;
-        const d = parseFloat(document.getElementById('tD').value);
-        if(name && d) tools.push({id: Date.now(), name, d});
-        refreshTools();
-    }
-
-    function refreshTools() {
-        const sel = document.getElementById('toolSelect');
-        sel.innerHTML = tools.map(t => `<option value="${t.id}">${t.name} (Φ${t.d})</option>`).join('');
-    }
+    function addTool() { const name = document.getElementById('tName').value; const d = parseFloat(document.getElementById('tD').value); if(name && d) tools.push({id: Date.now(), name, d}); refreshTools(); }
+    function refreshTools() { const sel = document.getElementById('toolSelect'); sel.innerHTML = tools.map(t => `<option value="${t.id}">${t.name} (Φ${t.d})</option>`).join(''); }
 
     function addFeature() {
         const type = document.getElementById('fType').value;
@@ -201,14 +185,7 @@
     function addProcess() {
         const tid = parseInt(document.getElementById('toolSelect').value);
         const tool = tools.find(t => t.id === tid);
-        processes.push({
-            id: Date.now(),
-            type: document.getElementById('procType').value,
-            tool,
-            ap: tool.d * 0.7,
-            ae: tool.d * 0.5,
-            f: 500, s: 2000
-        });
+        processes.push({ id: Date.now(), type: document.getElementById('procType').value, tool, ap: tool.d * 0.7, ae: tool.d * 0.5, f: 500, s: 2000 });
         updateProcList();
         draw();
     }
@@ -233,7 +210,7 @@
 
     function draw() {
         while(modelGroup.children.length > 0) modelGroup.remove(modelGroup.children[0]);
-        // 原点マーク
+        // 原点マーク (0,0)
         const mMat = new THREE.LineBasicMaterial({ color: 0xffffff });
         modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-60,0,0), new THREE.Vector3(60,0,0)]), mMat));
         modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-60), new THREE.Vector3(0,0,60)]), mMat));
@@ -245,15 +222,23 @@
         const wy = parseFloat(document.getElementById('wY').value);
         const wz = parseFloat(document.getElementById('wZ').value);
         
+        // --- ここが修正の核心 ---
+        // 中央原点(CC)時は中心を(0,0)に。
+        // 右下原点(BR)時は、原点(0,0)から見て、ワークの中心を「左(-wX/2)」に「上(-wY/2 ※奥方向)」にずらす。
+        // これで、原点(0,0)がワークの右下角にピタッと合います。
         let workPosX = (currentOrigin === 'CC') ? 0 : -wx / 2;
-        let workPosZ = (currentOrigin === 'CC') ? 0 : wy / 2;
+        let workPosZ = (currentOrigin === 'CC') ? 0 : -wy / 2; // ここを修正： wy/2 (手前) ではなく -wy/2 (奥)
 
+        // ワーク本体
         const work = new THREE.Mesh(new THREE.BoxGeometry(wx, wz, wy), new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.7 }));
         work.position.set(workPosX, -wz/2, workPosZ);
         modelGroup.add(work);
 
+        // フィーチャーの配置
         features.forEach(f => {
             let mesh;
+            // 符号の選択 (+/-) を含んだ座標 (f.x, f.y) をそのまま配置に使う
+            // Y軸は奥方向なので -f.y
             if(f.type === 'hole') {
                 mesh = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, Math.abs(f.z), 32), new THREE.MeshPhongMaterial({ color: 0xff4444 }));
                 mesh.position.set(f.x, f.z/2, -f.y);
@@ -266,10 +251,8 @@
     }
 
     function makeGCode() {
-        let g = document.getElementById('oNum').value + "\n(MADE BY NC-MODELER)\nG21 G90 G54\n";
-        processes.forEach((p, i) => {
-            g += `(PROCESS ${i+1}: ${p.type} TOOL:${p.tool.name})\nM06 T${i+1}\nS${p.s} M03\n`;
-        });
+        let g = document.getElementById('oNum').value + "\n(GENERATED BY NC-MODELER)\nG21 G90 G54\n";
+        processes.forEach((p, i) => { g += `(PROC ${i+1}: ${p.type} TOOL:${p.tool.name})\nM06 T${i+1}\nS${p.s} M03\nG00 X0 Y0 G43 Z10.\n... (PATH DATA) ...\n`; });
         g += "M30\n%";
         document.getElementById('gcodeBox').innerText = g;
     }
