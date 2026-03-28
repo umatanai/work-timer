@@ -3,27 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler V8 - Integrated CAM</title>
+    <title>NC-Modeler V9</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         :root { --orange: #ff9800; --bg: #0b0b0b; --card: #1a1a1a; --text: #eee; --red: #ff4444; --blue: #2196f3; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        #view-container { width: 100%; height: 35vh; background: #000; border-bottom: 2px solid #333; }
-        #settings-container { flex: 1; overflow-y: auto; padding: 15px; }
-        .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 15px; border: 1px solid #333; }
-        h2 { font-size: 0.8rem; margin: 0 0 10px 0; color: var(--orange); border-bottom: 1px solid #444; padding-bottom: 4px; }
-        .row { display: flex; gap: 5px; margin-bottom: 8px; align-items: center; }
+        #view-container { position: sticky; top: 0; width: 100%; height: 40vh; background: #000; z-index: 10; border-bottom: 2px solid #333; }
+        #settings-container { flex: 1; overflow-y: auto; padding: 15px; box-sizing: border-box; }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
+        h2 { font-size: 0.8rem; margin: 0 0 12px 0; color: var(--orange); border-bottom: 1px solid #444; padding-bottom: 6px; }
+        .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-end; }
         .col { flex: 1; }
-        label { display: block; font-size: 0.6rem; color: #888; margin-bottom: 2px; }
-        input, select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 0.85rem; }
-        .sign-btn { padding: 8px; background: #444; border: 1px solid #555; color: #fff; border-radius: 4px; cursor: pointer; width: 35px; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; }
-        .btn-add { background: var(--orange); color: #000; }
-        .btn-proc { background: var(--blue); color: #fff; }
-        .feat-item { background: #252525; padding: 8px; border-radius: 6px; margin-top: 5px; border-left: 4px solid var(--orange); font-size: 0.75rem; display: flex; justify-content: space-between; }
-        .proc-item { background: #1e2a38; padding: 10px; border-radius: 8px; margin-top: 8px; border-left: 4px solid var(--blue); }
-        .gcode-area { background: #001a00; color: #00ff00; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.7rem; white-space: pre-wrap; margin-top: 10px; border: 1px solid #004400; }
+        label { display: block; font-size: 0.65rem; color: #888; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 1rem; box-sizing: border-box; outline: none; }
+        .origin-selector { display: flex; gap: 10px; }
+        .origin-btn { flex: 1; padding: 12px; background: #333; border-radius: 8px; text-align: center; font-size: 0.9rem; border: 1px solid #444; cursor: pointer; }
+        .origin-btn.active { background: var(--orange); color: #000; font-weight: bold; border-color: var(--orange); }
+        .sign-btn { padding: 10px; background: #444; border: 1px solid #555; color: #fff; border-radius: 6px; cursor: pointer; min-width: 40px; }
+        .add-btn { width: 100%; padding: 15px; background: var(--orange); border: none; border-radius: 8px; color: #000; font-weight: bold; margin-top: 5px; cursor: pointer; }
+        .feat-item { background: #252525; padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--orange); }
+        .proc-item { background: #1a2635; padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--blue); }
+        .del-btn { background: var(--red); color: white; border: none; border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+        .gcode-box { background: #001a00; padding: 12px; border-radius: 6px; border: 1px solid #004400; margin-top: 10px; font-family: monospace; font-size: 0.75rem; color: #00ff00; white-space: pre-wrap; }
     </style>
 </head>
 <body>
@@ -31,253 +33,242 @@
 <div id="view-container"></div>
 
 <div id="settings-container">
-    
     <div class="card">
-        <h2>🛠 工具登録</h2>
+        <h2>工具リスト登録</h2>
         <div class="row">
-            <input type="text" id="tName" placeholder="工具名" style="flex:2;">
-            <input type="number" id="tD" placeholder="径Φ" style="flex:1;">
-            <button class="btn-add" style="padding:10px; width:60px;" onclick="addTool()">登録</button>
+            <div class="col"><label>工具名</label><input type="text" id="tName" placeholder="EM10"></div>
+            <div class="col"><label>径Φ</label><input type="number" id="tD" value="10"></div>
+            <button class="sign-btn" style="background:var(--orange); color:#000; font-weight:bold;" onclick="addTool()">登録</button>
         </div>
-        <select id="toolSelect" style="margin-top:5px;"></select>
+        <select id="toolSelect"></select>
     </div>
 
     <div class="card">
-        <h2>1. ワーク・形状設計</h2>
+        <h2>1. ワーク完成寸法</h2>
         <div class="row">
             <div class="col"><label>幅 X</label><input type="number" id="wX" value="100" oninput="draw()"></div>
             <div class="col"><label>長さ Y</label><input type="number" id="wY" value="100" oninput="draw()"></div>
-            <div class="col"><label>厚 Z</label><input type="number" id="wZ" value="20" oninput="draw()"></div>
+            <div class="col"><label>厚み Z</label><input type="number" id="wZ" value="20" oninput="draw()"></div>
             <div class="col"><label>面取C/R</label><input type="number" id="wCR" value="0" oninput="draw()"></div>
         </div>
-        
+    </div>
+
+    <div class="card">
+        <h2>2. 素材寸法</h2>
         <div class="row">
-            <select id="fType" onchange="togglePocketFields()" style="flex:1.2;">
+            <div class="col"><label>素材 X</label><input type="number" id="mX" value="105" oninput="draw()"></div>
+            <div class="col"><label>素材 Y</label><input type="number" id="mY" value="105" oninput="draw()"></div>
+        </div>
+        <div class="row">
+            <div class="col"><label>上面しろ</label><input type="number" id="mZ_top" value="4" oninput="draw()"></div>
+            <div class="col"><label>素材全厚</label><input type="number" id="mZ_total" value="30" oninput="draw()"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>3. 原点位置 (G54)</h2>
+        <div class="origin-selector">
+            <div class="origin-btn" id="btn_CC" onclick="setOrigin('CC')">中央</div>
+            <div class="origin-btn active" id="btn_BR" onclick="setOrigin('BR')">右下</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>4. 形状追加</h2>
+        <div class="row">
+            <select id="fType" onchange="uiPocket()" style="flex:1.5;">
                 <option value="hole">穴/タップ</option>
-                <option value="pocket">中心基準ポケット</option>
+                <option value="pocket">ポケット(中心基準)</option>
             </select>
-            <button class="sign-btn" id="sX" onclick="toggleSign('sX')">+</button>
+            <button class="sign-btn" id="sX" onclick="tSign('sX')">+</button>
             <input type="number" id="fX" placeholder="X" style="flex:1;">
-            <button class="sign-btn" id="sY" onclick="toggleSign('sY')">+</button>
+            <button class="sign-btn" id="sY" onclick="tSign('sY')">+</button>
             <input type="number" id="fY" placeholder="Y" style="flex:1;">
         </div>
-
-        <div id="pocketFields" style="display:none;">
+        <div id="pocketParams" style="display:none;">
             <div class="row">
-                <input type="number" id="pW" placeholder="幅(X)">
-                <input type="number" id="pL" placeholder="長(Y)">
-                <input type="number" id="pR" placeholder="隅R">
+                <div class="col"><label>ポケット幅(X)</label><input type="number" id="pW" value="40"></div>
+                <div class="col"><label>長さ(Y)</label><input type="number" id="pL" value="30"></div>
+                <div class="col"><label>隅R</label><input type="number" id="pR" value="5"></div>
             </div>
         </div>
-
         <div class="row">
-            <input type="text" id="fD" placeholder="Φ / M径" style="flex:1;">
-            <input type="number" id="fZ" placeholder="深さZ(-)" style="flex:1;">
-            <button class="btn-add" style="flex:1; margin:0;" onclick="addFeature()">追加</button>
+            <div class="col"><label id="labelD">Φ / M径</label><input type="text" id="fD" value="10"></div>
+            <div class="col"><label>深さ Z (-)</label><input type="number" id="fZ" value="-10"></div>
         </div>
+        <button class="add-btn" onclick="addFeature()">形状追加</button>
         <div id="featureList"></div>
     </div>
 
     <div class="card">
-        <h2>2. 素材 (Stock)</h2>
-        <div class="row">
-            <div class="col"><label>上面しろ</label><input type="number" id="mZ_top" value="4" oninput="draw()"></div>
-            <div class="col"><label>全厚</label><input type="number" id="mZ_total" value="30" oninput="draw()"></div>
-        </div>
-    </div>
-
-    <div class="card">
-        <h2>3. 工程 & NC出力</h2>
+        <h2>5. 加工工程設定 & NC出力</h2>
         <div class="row">
             <select id="procType" style="flex:1.5;">
-                <option value="face">上面フェイス</option>
+                <option value="face">上面フェイス加工</option>
                 <option value="hole">穴/タップ加工</option>
                 <option value="pocket">ポケット加工</option>
             </select>
-            <button class="btn-proc" style="flex:1; margin:0;" onclick="addProcess()">工程追加</button>
+            <button class="add-btn" style="background:var(--blue); color:white; margin:0; flex:1;" onclick="addProcess()">工程追加</button>
         </div>
         <div id="processList"></div>
-        <div class="row" style="margin-top:10px;">
-            <input type="text" id="oNum" value="O1234" style="flex:1;">
-            <button class="btn-proc" style="flex:1; background:green;" onclick="generateGCode()">Gコード出力</button>
+        <div class="row" style="margin-top:15px;">
+            <div class="col"><label>O番号</label><input type="text" id="oNum" value="O1001"></div>
+            <button class="add-btn" style="background:#2e7d32; color:white; flex:1;" onclick="makeGCode()">Gコード出力</button>
         </div>
-        <div id="gcodeBox" class="gcode-area"></div>
+        <div id="gcodeBox" class="gcode-box"></div>
     </div>
 </div>
 
 <script>
     let scene, camera, renderer, controls, modelGroup;
+    let currentOrigin = 'BR';
     let features = [];
     let processes = [];
-    let tools = [{id:1, name:"Face80", d:80}, {id:2, name:"EM10", d:10}];
+    let tools = [{id:1, name:"FaceMill80", d:80}, {id:2, name:"EM10", d:10}];
 
     function init() {
         const container = document.getElementById('view-container');
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 3000);
-        camera.position.set(150, 150, 150);
+        camera.position.set(180, 180, 180);
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         container.appendChild(renderer.domElement);
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         scene.add(new THREE.AmbientLight(0xaaaaaa, 0.6));
         const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-        sun.position.set(100, 300, 100);
+        sun.position.set(100, 200, 100);
         scene.add(sun);
         modelGroup = new THREE.Group();
         scene.add(modelGroup);
-        updateToolUI();
+        refreshTools();
         draw();
         animate();
     }
 
     function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
 
-    function toggleSign(id) {
-        const btn = document.getElementById(id);
-        btn.innerText = btn.innerText === '+' ? '-' : '+';
+    function setOrigin(o) {
+        currentOrigin = o;
+        document.querySelectorAll('.origin-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn_' + o).classList.add('active');
+        draw();
     }
 
-    function togglePocketFields() {
-        document.getElementById('pocketFields').style.display = 
-            document.getElementById('fType').value === 'pocket' ? 'block' : 'none';
-    }
+    function tSign(id) { const b = document.getElementById(id); b.innerText = b.innerText === '+' ? '-' : '+'; }
+    function uiPocket() { document.getElementById('pocketParams').style.display = document.getElementById('fType').value === 'pocket' ? 'block' : 'none'; }
 
     function addTool() {
         const name = document.getElementById('tName').value;
         const d = parseFloat(document.getElementById('tD').value);
-        if(!name || !d) return;
-        tools.push({id:Date.now(), name, d});
-        updateToolUI();
+        if(name && d) tools.push({id: Date.now(), name, d});
+        refreshTools();
     }
 
-    function updateToolUI() {
-        const select = document.getElementById('toolSelect');
-        select.innerHTML = tools.map(t => `<option value="${t.id}">${t.name} (Φ${t.d})</option>`).join('');
+    function refreshTools() {
+        const sel = document.getElementById('toolSelect');
+        sel.innerHTML = tools.map(t => `<option value="${t.id}">${t.name} (Φ${t.d})</option>`).join('');
     }
 
     function addFeature() {
         const type = document.getElementById('fType').value;
-        const xSign = document.getElementById('sX').innerText === '+' ? 1 : -1;
-        const ySign = document.getElementById('sY').innerText === '+' ? 1 : -1;
-        
-        const f = {
-            id: Date.now(),
-            type,
-            x: (parseFloat(document.getElementById('fX').value) || 0) * xSign,
-            y: (parseFloat(document.getElementById('fY').value) || 0) * ySign,
-            z: parseFloat(document.getElementById('fZ').value) || -10,
+        const sx = document.getElementById('sX').innerText === '+' ? 1 : -1;
+        const sy = document.getElementById('sY').innerText === '+' ? 1 : -1;
+        features.push({
+            id: Date.now(), type,
+            x: (parseFloat(document.getElementById('fX').value) || 0) * sx,
+            y: (parseFloat(document.getElementById('fY').value) || 0) * sy,
             d: document.getElementById('fD').value,
+            z: parseFloat(document.getElementById('fZ').value) || -10,
             pw: parseFloat(document.getElementById('pW').value) || 0,
             pl: parseFloat(document.getElementById('pL').value) || 0,
             pr: parseFloat(document.getElementById('pR').value) || 0
-        };
-        features.push(f);
-        updateFeatureUI();
+        });
+        updateFeatList();
         draw();
     }
 
-    function updateFeatureUI() {
+    function updateFeatList() {
         document.getElementById('featureList').innerHTML = features.map(f => `
             <div class="feat-item">
-                <span>${f.type.toUpperCase()}: X${f.x} Y${f.y} Z${f.z}</span>
-                <button class="del-btn" onclick="removeFeature(${f.id})">×</button>
+                <span><b>${f.type.toUpperCase()}</b> (X${f.x}, Y${f.y}, Z${f.z})</span>
+                <button class="del-btn" onclick="delFeat(${f.id})">削除</button>
             </div>`).join('');
     }
 
-    function removeFeature(id) { features = features.filter(f => f.id !== id); updateFeatureUI(); draw(); }
+    function delFeat(id) { features = features.filter(f => f.id !== id); updateFeatList(); draw(); }
 
     function addProcess() {
-        const toolId = parseInt(document.getElementById('toolSelect').value);
-        const tool = tools.find(t => t.id === toolId);
+        const tid = parseInt(document.getElementById('toolSelect').value);
+        const tool = tools.find(t => t.id === tid);
         processes.push({
             id: Date.now(),
             type: document.getElementById('procType').value,
             tool,
-            ap: tool.d * 0.7, // apは工具径の70%
+            ap: tool.d * 0.7,
             ae: tool.d * 0.5,
-            s: 2000,
-            f: 500
+            f: 500, s: 2000
         });
-        updateProcessUI();
+        updateProcList();
         draw();
     }
 
-    function updateProcessUI() {
+    function updateProcList() {
         document.getElementById('processList').innerHTML = processes.map(p => `
             <div class="proc-item">
-                <div style="font-size:0.75rem; font-weight:bold; color:var(--blue); margin-bottom:5px;">${p.type.toUpperCase()} - ${p.tool.name}</div>
-                <div class="row">
-                    <div class="col"><label>ap</label><input type="number" value="${p.ap}" oninput="updateProcParam(${p.id}, 'ap', this.value)"></div>
-                    <div class="col"><label>ae</label><input type="number" value="${p.ae}" oninput="updateProcParam(${p.id}, 'ae', this.value)"></div>
-                    <div class="col"><label>送り</label><input type="number" value="${p.f}" oninput="updateProcParam(${p.id}, 'f', this.value)"></div>
+                <div style="display:flex; justify-content:space-between; color:var(--blue); font-weight:bold; font-size:0.8rem;">
+                    <span>${p.type.toUpperCase()} [${p.tool.name}]</span>
+                    <button class="del-btn" style="padding:2px 6px;" onclick="delProc(${p.id})">×</button>
+                </div>
+                <div class="row" style="margin-top:8px;">
+                    <div class="col"><label>ap</label><input type="number" value="${p.ap}" oninput="updProc(${p.id}, 'ap', this.value)"></div>
+                    <div class="col"><label>ae</label><input type="number" value="${p.ae}" oninput="updProc(${p.id}, 'ae', this.value)"></div>
+                    <div class="col"><label>送り</label><input type="number" value="${p.f}" oninput="updProc(${p.id}, 'f', this.value)"></div>
                 </div>
             </div>`).join('');
     }
 
-    function updateProcParam(id, key, val) {
-        const p = processes.find(proc => proc.id === id);
-        if(p) p[key] = parseFloat(val);
-        draw();
-    }
-
-    function removeProcess(id) { processes = processes.filter(p => p.id !== id); updateProcessUI(); draw(); }
+    function updProc(id, k, v) { const p = processes.find(x => x.id === id); if(p) p[k] = parseFloat(v); draw(); }
+    function delProc(id) { processes = processes.filter(p => p.id !== id); updateProcList(); draw(); }
 
     function draw() {
         while(modelGroup.children.length > 0) modelGroup.remove(modelGroup.children[0]);
-        
-        // --- 原点マーク (G54) ---
-        const markMat = new THREE.LineBasicMaterial({ color: 0xffffff });
-        modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-60,0,0), new THREE.Vector3(60,0,0)]), markMat));
-        modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-60), new THREE.Vector3(0,0,60)]), markMat));
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(5, 0.3, 8, 32), new THREE.MeshBasicMaterial({color:0xffffff}));
+        // 原点マーク
+        const mMat = new THREE.LineBasicMaterial({ color: 0xffffff });
+        modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-60,0,0), new THREE.Vector3(60,0,0)]), mMat));
+        modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-60), new THREE.Vector3(0,0,60)]), mMat));
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(5, 0.4, 8, 32), new THREE.MeshBasicMaterial({color:0xffffff}));
         ring.rotation.x = Math.PI/2;
         modelGroup.add(ring);
 
         const wx = parseFloat(document.getElementById('wX').value);
         const wy = parseFloat(document.getElementById('wY').value);
         const wz = parseFloat(document.getElementById('wZ').value);
-        const mz_top = parseFloat(document.getElementById('mZ_top').value);
-        const mz_total = parseFloat(document.getElementById('mZ_total').value);
+        
+        let workPosX = (currentOrigin === 'CC') ? 0 : -wx / 2;
+        let workPosZ = (currentOrigin === 'CC') ? 0 : wy / 2;
 
-        // 右下原点ロジック
-        let workPosX = -wx / 2;
-        let workPosZ = wy / 2;
-
-        // ワーク
-        const work = new THREE.Mesh(new THREE.BoxGeometry(wx, wz, wy), new THREE.MeshPhongMaterial({ color: 0x666666, transparent: true, opacity: 0.7 }));
+        const work = new THREE.Mesh(new THREE.BoxGeometry(wx, wz, wy), new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.7 }));
         work.position.set(workPosX, -wz/2, workPosZ);
         modelGroup.add(work);
 
-        // 素材
-        const stock = new THREE.Mesh(new THREE.BoxGeometry(wx+5, mz_total, wy+5), new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true }));
-        stock.position.set(workPosX, -(wz + mz_top) + mz_total/2, workPosZ);
-        modelGroup.add(stock);
-
-        // フィーチャー
         features.forEach(f => {
             let mesh;
             if(f.type === 'hole') {
-                const geo = new THREE.CylinderGeometry(5, 5, Math.abs(f.z), 32);
-                mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0xff4444 }));
+                mesh = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, Math.abs(f.z), 32), new THREE.MeshPhongMaterial({ color: 0xff4444 }));
                 mesh.position.set(f.x, f.z/2, -f.y);
             } else {
-                const geo = new THREE.BoxGeometry(f.pw, Math.abs(f.z), f.pl);
-                mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0x4444ff, transparent:true, opacity:0.5 }));
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(f.pw, Math.abs(f.z), f.pl), new THREE.MeshPhongMaterial({ color: 0x4444ff, transparent:true, opacity:0.5 }));
                 mesh.position.set(f.x, f.z/2, -f.y);
             }
             modelGroup.add(mesh);
         });
     }
 
-    function generateGCode() {
-        const o = document.getElementById('oNum').value;
-        let g = `${o}\n(NC-MODELER V8 OUTPUT)\nG21 G90 G54\n`;
+    function makeGCode() {
+        let g = document.getElementById('oNum').value + "\n(MADE BY NC-MODELER)\nG21 G90 G54\n";
         processes.forEach((p, i) => {
-            g += `(T${i+1}: ${p.tool.name} - ${p.type})\n`;
-            g += `M06 T${i+1}\nS${p.s} M03\n`;
-            g += `G00 X0 Y0\nG43 Z50. H01\n`;
-            g += `... (PATH CALCULATION) ...\n`;
+            g += `(PROCESS ${i+1}: ${p.type} TOOL:${p.tool.name})\nM06 T${i+1}\nS${p.s} M03\n`;
         });
         g += "M30\n%";
         document.getElementById('gcodeBox').innerText = g;
