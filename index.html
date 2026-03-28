@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler V5 - Origin Fixed</title>
+    <title>NC-Modeler V5 - Origin Fix</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -62,15 +62,15 @@
     </div>
 
     <div class="card">
-        <h2>4. 形状追加</h2>
+        <h2>4. 形状追加 (Input coordinates from G54)</h2>
         <div class="row">
             <select id="fType" style="flex:1.5;"><option value="hole">穴</option><option value="boss">ボス</option></select>
-            <input type="number" id="fX" placeholder="X座標" style="flex:1;">
-            <input type="number" id="fY" placeholder="Y座標" style="flex:1;">
+            <input type="number" id="fX" placeholder="X" style="flex:1;">
+            <input type="number" id="fY" placeholder="Y" style="flex:1;">
         </div>
         <div class="row">
-            <input type="number" id="fD" placeholder="径Φ" style="flex:1;">
-            <input type="number" id="fZ" placeholder="深/高" style="flex:1;">
+            <input type="number" id="fD" placeholder="Φ" style="flex:1;">
+            <input type="number" id="fZ" placeholder="深" style="flex:1;">
         </div>
         <button class="add-btn" onclick="addFeature()">追加</button>
         <div id="featureList"></div>
@@ -85,8 +85,8 @@
     function init() {
         const container = document.getElementById('view-container');
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 3000);
-        camera.position.set(180, 180, 180);
+        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 5000);
+        camera.position.set(200, 200, 200);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
@@ -98,7 +98,7 @@
 
         scene.add(new THREE.AmbientLight(0xaaaaaa, 0.6));
         const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-        sun.position.set(100, 200, 100);
+        sun.position.set(100, 300, 100);
         scene.add(sun);
 
         modelGroup = new THREE.Group();
@@ -142,7 +142,7 @@
         const list = document.getElementById('featureList');
         list.innerHTML = features.map(f => `
             <div class="feat-item">
-                <span>${f.type === 'hole' ? '穴' : 'ボス'} (X${f.x}, Y${f.y}, Φ${f.d})</span>
+                <span><b>${f.type === 'hole' ? '穴' : 'ボス'}</b> (X${f.x}, Y${f.y}, Φ${f.d})</span>
                 <button class="del-btn" onclick="removeFeature(${f.id})">削除</button>
             </div>
         `).join('');
@@ -151,9 +151,11 @@
     function drawOriginMark() {
         const group = new THREE.Group();
         const mat = new THREE.LineBasicMaterial({ color: 0xffffff });
-        const size = 50;
+        const size = 60;
+        // 十字 (G54 0点)
         group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-size,0,0), new THREE.Vector3(size,0,0)]), mat));
         group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-size), new THREE.Vector3(0,0,size)]), mat));
+        // リング
         const ring = new THREE.Mesh(new THREE.TorusGeometry(5, 0.4, 8, 32), new THREE.MeshBasicMaterial({color:0xffffff}));
         ring.rotation.x = Math.PI/2;
         group.add(ring);
@@ -172,55 +174,50 @@
         const mz_top = parseFloat(document.getElementById('mZ_top').value);
         const mz_total = parseFloat(document.getElementById('mZ_total').value);
 
-        document.getElementById('calcInfo').innerHTML = `底面残り(クランプ代): ${(mz_total - wz - mz_top).toFixed(2)} mm`;
+        document.getElementById('calcInfo').innerHTML = `底面残り: ${(mz_total - wz - mz_top).toFixed(2)} mm`;
 
-        // --- ワークの配置 (中心座標を計算) ---
-        let workCenterX, workCenterY;
+        // --- ワーク配置ロジック (ここが修正の核心) ---
+        let workPosX, workPosZ;
 
         if (currentOrigin === 'CC') {
-            workCenterX = 0;
-            workCenterY = 0;
+            // 中央：中心が(0,0)
+            workPosX = 0;
+            workPosZ = 0;
         } else {
-            // 右下原点(BR)の場合
-            // X方向：原点(0)から左(マイナス)へ100mmなので、中心は -50
-            workCenterX = -wx / 2;
-            // Y方向：原点(0)から奥(プラス)へ100mmなので、中心は +50
-            workCenterY = wy / 2;
+            // 右下(BR)：原点(0,0)に対して、ワークは左(X-)、奥(Y+)に広がる
+            // Three.jsのZ軸(マイナス)が現場のYプラス(奥)
+            workPosX = -wx / 2; // 原点から左に全幅の半分ずらす
+            workPosZ = -wy / 2; // 原点から奥に全長の半分ずらす
         }
 
-        // ワーク本体 (Finish)
+        // ワーク本体
         const work = new THREE.Mesh(
             new THREE.BoxGeometry(wx, wz, wy),
             new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.7 })
         );
-        // BoxGeometryのpositionは「中心」を指定する。
-        // Y軸（高さ方向）は上面を0にするため、-wz/2
-        work.position.set(workCenterX, -wz/2, workCenterY);
+        work.position.set(workPosX, -wz/2, workPosZ); 
         modelGroup.add(work);
 
-        // 素材 (Stock Wireframe)
+        // 素材
         const stock = new THREE.Mesh(
             new THREE.BoxGeometry(mx, mz_total, my),
             new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true })
         );
-        // 素材もワーク中心に合わせ、Z方向（厚み）は上面しろ分だけ浮かせる
-        stock.position.set(workCenterX, -(wz + mz_top) + mz_total/2, workCenterY);
+        stock.position.set(workPosX, -(wz + mz_top) + mz_total/2, workPosZ);
         modelGroup.add(stock);
 
-        // --- フィーチャーの配置 ---
+        // --- フィーチャーの配置 (現場座標系をThree.jsへ変換) ---
         features.forEach(f => {
             const geo = new THREE.CylinderGeometry(f.d/2, f.d/2, f.z, 32);
             const isHole = f.type === 'hole';
             const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0xff4444 : 0x44ff44 });
             const mesh = new THREE.Mesh(geo, mat);
             
-            // 入力座標(f.x, f.y)をそのまま原点(0,0,0)からの位置として反映
-            // Three.jsの座標系では Z軸のマイナスが画面奥。
-            // 現場座標の Yプラス = Three.jsの Zマイナス に対応させる
-            const zPosFromY = -f.y; 
+            // 現場のX = そのままX
+            // 現場のYプラス(奥) = Three.jsのZマイナス(奥)
             const yDepth = isHole ? -f.z/2 : f.z/2;
+            mesh.position.set(f.x, yDepth, -f.y); 
             
-            mesh.position.set(f.x, yDepth, zPosFromY); 
             modelGroup.add(mesh);
         });
     }
