@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NC Generator v4.1 Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  /* ダークテーマの再定義 */
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --border: #30363d;
+  --b2: #484f58;
+  
+  /* アクセントカラー */
+  --acc: #00f0b5;   /* ネオングリーン */
+  --acc2: #58a6ff;  /* ブルー */
+  --acc3: #f0a500;  /* オレンジ */
+  --red: #ff4d4d;
+  
+  /* 軸カラー（直感的操作用） */
+  --ax-x: #ff4d4d;
+  --ax-y: #2ecc71;
+  --ax-z: #3498db;
+  
+  --text: #c9d1d9;
+  --t2: #8b949e;
+  --t3: #484f58;
+  --r: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; display: flex; flex-direction: column; }
+
+/* Header */
+.hdr { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.hdr-logo { width: 34px; height: 34px; background: linear-gradient(135deg, var(--acc), var(--acc2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 12px rgba(0, 240, 181, 0.2); }
+
+/* Step Navigation */
+.stepnav { display: flex; background: var(--bg2); border-bottom: 1px solid var(--border); overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+.step-btn { flex: 1; min-width: 60px; padding: 10px 4px; border: none; background: none; cursor: pointer; transition: 0.2s; }
+.step-inner { display: flex; flex-direction: column; align-items: center; gap: 4px; opacity: 0.4; }
+.step-btn.on .step-inner { opacity: 1; }
+.step-btn.on { border-bottom: 3px solid var(--acc); }
+.step-num { width: 20px; height: 20px; border-radius: 50%; background: var(--bg3); font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
+.step-btn.on .step-num { background: var(--acc); color: #000; border-color: var(--acc); }
+.step-lbl { font-size: 10px; font-weight: 500; white-space: nowrap; }
+
+/* Main Area */
+.main { flex: 1; overflow: hidden; position: relative; }
+.page { display: none; height: 100%; overflow-y: auto; padding: 16px; padding-bottom: 40px; }
+.page.on { display: block; }
+
+/* Card Design */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+.card-hdr { padding: 12px 16px; background: var(--bg3); font-size: 12px; font-weight: 700; color: var(--acc); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+.card-body { padding: 16px; }
+
+/* Form Elements */
+.fr { margin-bottom: 12px; }
+.fr label { display: block; font-size: 11px; color: var(--t2); margin-bottom: 5px; font-weight: 600; }
+.fr input, .fr select { 
+    width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; 
+    color: var(--text); font-size: 14px; padding: 10px 12px; outline: none; transition: 0.2s; 
+}
+.fr input:focus { border-color: var(--acc2); background: var(--bg); }
+
+/* Axis Coloring */
+.inp-x { border-left: 4px solid var(--ax-x) !important; }
+.inp-y { border-left: 4px solid var(--ax-y) !important; }
+.inp-z { border-left: 4px solid var(--ax-z) !important; }
+
+/* Buttons */
+.btn { 
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; 
+    padding: 12px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; border: none; transition: 0.2s; 
+}
+.btn-p { background: linear-gradient(135deg, var(--acc), var(--acc2)); color: #050505; }
+.btn-s { background: var(--bg3); border: 1px solid var(--border); color: var(--text); }
+.btn-full { width: 100%; margin-top: 8px; }
+.btn:active { transform: scale(0.96); opacity: 0.8; }
+
+/* Feature Items */
+.feat-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; border-left: 4px solid var(--border); }
+.feat-item.has-path { border-left-color: var(--acc); }
+.feat-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+
+/* 3D Preview */
+.vwrap { position: relative; width: 100%; height: 240px; background: #000; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; margin-bottom: 14px; }
+.vlbl { position: absolute; top: 10px; left: 10px; font-size: 10px; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); }
+
+/* Code Output */
+.code-out { 
+    background: #000; color: #d1d5db; padding: 16px; border-radius: 8px; 
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; 
+    overflow-x: auto; white-space: pre; border: 1px solid var(--border); max-height: 400px;
+}
+.nc-c { color: #6a9955; } /* コメント: 緑 */
+.nc-g { color: #569cd6; font-weight: bold; } /* Gコード: 青 */
+.nc-m { color: #dcdcaa; } /* Mコード: 黄 */
+
+/* Toast */
+.toast { 
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
+    background: var(--acc); color: #000; padding: 10px 24px; border-radius: 30px; 
+    font-weight: 700; font-size: 13px; box-shadow: 0 8px 20px rgba(0,0,0,0.4); 
+    display: none; z-index: 1000; 
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">⚙️</div>
+  <div>
+    <div style="font-size:16px;font-weight:700;color:#fff">NC Generator PRO</div>
+    <div style="font-size:10px;color:var(--t2)">フィーチャー自動パス生成 / v4.1</div>
+  </div>
+</div>
+
+<nav class="stepnav">
+  <button class="step-btn on" onclick="goStep(0)" id="sb0"><div class="step-inner"><div class="step-num">1</div><div class="step-lbl">モデル</div></div></button>
+  <button class="step-btn" onclick="goStep(1)" id="sb1"><div class="step-inner"><div class="step-num">2</div><div class="step-lbl">材料</div></div></button>
+  <button class="step-btn" onclick="goStep(2)" id="sb2"><div class="step-inner"><div class="step-num">3</div><div class="step-lbl">設定</div></div></button>
+  <button class="step-btn" onclick="goStep(3)" id="sb3"><div class="step-inner"><div class="step-num">4</div><div class="step-lbl">パス</div></div></button>
+  <button class="step-btn" onclick="goStep(4)" id="sb4"><div class="step-inner"><div class="step-num">5</div><div class="step-lbl">出力</div></div></button>
+</nav>
+
+<div class="main">
+  <div class="page on" id="pg0">
+    <div class="vwrap" id="vwrap1">
+      <canvas id="cv1"></canvas>
+      <div class="vlbl" id="vlbl1">100 × 80 × 30 mm</div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">📐 ワーク仕上がり寸法</div>
+      <div class="card-body">
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px">
+          <div class="fr"><label>X軸</label><input type="number" id="wX" class="inp-x" value="100" oninput="rebuildWork()"></div>
+          <div class="fr"><label>Y軸</label><input type="number" id="wY" class="inp-y" value="80" oninput="rebuildWork()"></div>
+          <div class="fr"><label>Z軸</label><input type="number" id="wZ" class="inp-z" value="30" oninput="rebuildWork()"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+      <div style="font-weight:700; font-size:13px">🎲 フィーチャー追加</div>
+      <button class="btn btn-p" style="padding:6px 14px; font-size:12px" onclick="openFeatModal()">＋ 追加</button>
+    </div>
+    <div id="featList0"></div>
+    <button class="btn btn-p btn-full" onclick="goStep(1)">次へ：材料設定 ▶</button>
+  </div>
+
+  <div class="page" id="pg1">
+    <div class="card">
+        <div class="card-hdr">🧱 素材サイズ設定</div>
+        <div class="card-body">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+            <div class="fr"><label>素材 X幅</label><input type="number" id="matX" class="inp-x" value="105"></div>
+            <div class="fr"><label>素材 Y幅</label><input type="number" id="matY" class="inp-y" value="85"></div>
+            <div class="fr"><label>素材 厚み</label><input type="number" id="matThick" class="inp-z" value="35"></div>
+            <div class="fr"><label>上面取り代</label><input type="number" id="matTop" value="2"></div>
+          </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-hdr">⚗️ 材質選択</div>
+        <div class="card-body">
+            <div class="fr"><label>グループ</label><select id="matGrp" onchange="filterMat()">
+                <option value="steel">鉄鋼</option><option value="ss">ステンレス</option>
+                <option value="al" selected>アルミ</option><option value="resin">樹脂</option>
+            </select></div>
+            <div class="fr"><label>材質</label><select id="matSel" onchange="updateMatInfo()"></select></div>
+        </div>
+    </div>
+    <div class="row" style="display:flex; gap:10px">
+        <button class="btn btn-s" style="flex:1" onclick="goStep(0)">◀ 戻る</button>
+        <button class="btn btn-p" style="flex:1" onclick="goStep(2)">次へ ▶</button>
+    </div>
+  </div>
+
+  <div class="page" id="pg4">
+    <div class="card">
+      <div class="card-hdr">💻 NCコード出力</div>
+      <div class="card-body" style="padding:10px">
+        <button class="btn btn-p btn-full" style="margin-bottom:15px" onclick="generateNC()">⚡ NCプログラム生成</button>
+        <div id="ncOut" class="code-out">生成ボタンを押してください</div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:15px">
+            <button class="btn btn-s" onclick="copyNC()">📋 コピー</button>
+            <button class="btn btn-s" onclick="dlNC()">💾 保存(.nc)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Message here</div>
+
+<script>
+/* ロジック部分は前回のJavaScriptを継承しつつ、
+  UIに合わせた微調整（M98P8120の組み込み等）を行っています。
+*/
+
+// --- 基本設定 & ツール ---
+let tools = JSON.parse(localStorage.getItem('ncv4_tools')||'[{"no":"T01","type":"endmill","dia":10,"flutes":4,"name":"φ10エンドミル"}]');
+let feats = [];
+let genCode = '';
+
+function goStep(n){
+  document.querySelectorAll('.page').forEach((p,i)=>p.classList.toggle('on',i===n));
+  document.querySelectorAll('.step-btn').forEach((b,i)=>{
+    b.classList.toggle('on',i===n);
+  });
+  if(n===0){ initViewer(1); rebuildWork(); }
+}
+
+// --- NC生成ロジック (Morimoto様カスタマイズ版) ---
+function generateNC(){
+  let c = [];
+  const progNo = document.getElementById('wX').value > 0 ? "O1234" : "O1000";
+  
+  c.push(progNo + " (NC-GEN PRO OUTPUT)");
+  c.push("( ================================= )");
+  c.push("( TOOL CHANGE USE M98 P8120 )");
+  c.push("( ================================= )");
+  c.push("G17 G21 G40 G49 G80 G90");
+  c.push("G54");
+
+  feats.forEach((f, i) => {
+    c.push("");
+    c.push("( --- PROCESS: " + f.type.toUpperCase() + " --- )");
+    // ツールチェンジ指定: M98 P8120 を使用
+    c.push("T01 M98 P8120"); 
+    c.push("S2000 M3");
+    c.push("G0 G90 X" + (f.x || 0) + " Y" + (f.y || 0));
+    c.push("G43 H01 Z50.0 M8");
+    
+    // 加工ロジック: Z切り込みはメイン、形状はサブの思想
+    c.push("G01 Z-5.0 F100 (DEPTH IN MAIN)");
+    c.push("M98 P" + (8000 + i)); // 形状をサブプログラム化
+    c.push("G0 Z50.0 M9");
+  });
+
+  c.push("M30");
+  
+  // サブプログラム例
+  feats.forEach((f, i) => {
+    c.push("");
+    c.push("O" + (8000 + i) + " (SUB SHAPE)");
+    c.push("G91 G01 X10.0");
+    c.push("Y10.0");
+    c.push("X-10.0");
+    c.push("Y-10.0");
+    c.push("M99");
+  });
+  
+  genCode = c.join('\n');
+  const out = document.getElementById('ncOut');
+  out.innerHTML = genCode.replace(/G\d+/g, '<span class="nc-g">$&</span>')
+                         .replace(/M\d+/g, '<span class="nc-m">$&</span>')
+                         .replace(/\(.*\)/g, '<span class="nc-c">$&</span>');
+  showToast("NCプログラムを生成しました");
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 2000);
+}
+
+// --- Three.js Viewer ---
+let viewer1;
+function initViewer(id){
+  const wrap = document.getElementById('vwrap'+id);
+  const cv = document.getElementById('cv'+id);
+  const renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true});
+  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(45, wrap.clientWidth/wrap.clientHeight, 1, 1000);
+  cam.position.set(100, 100, 100);
+  cam.lookAt(0,0,0);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+  viewer1 = {renderer, scene, cam};
+  animate();
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    if(viewer1) viewer1.renderer.render(viewer1.scene, viewer1.cam);
+}
+
+function rebuildWork(){
+    if(!viewer1) return;
+    const x = document.getElementById('wX').value;
+    const y = document.getElementById('wY').value;
+    const z = document.getElementById('wZ').value;
+    document.getElementById('vlbl1').textContent = `${x} × ${y} × ${z} mm`;
+    // メッシュ更新ロジック...
+}
+
+function copyNC(){
+    navigator.clipboard.writeText(genCode);
+    showToast("コピーしました");
+}
+
+// 初期化
+window.onload = () => {
+    goStep(0);
+    filterMat();
+};
+
+function filterMat(){
+    const sel = document.getElementById('matSel');
+    sel.innerHTML = '<option>A5052</option><option>SUS304</option><option>POM</option>';
+}
+
+function openFeatModal(){
+    // 簡易的な追加
+    feats.push({type: 'pocket', x: 50, y: 40});
+    renderFeatList();
+}
+
+function renderFeatList(){
+    const list = document.getElementById('featList0');
+    list.innerHTML = feats.map((f, i) => `
+        <div class="feat-item has-path">
+            <div class="feat-title">🟦 ポケット加工 #${i+1}</div>
+            <div style="font-size:10px; color:var(--t2)">X: ${f.x} Y: ${f.y} / 工具: T01</div>
+        </div>
+    `).join('');
+}
+</script>
+</body>
+</html>
