@@ -10,7 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
-        /* スクロールバーのカスタマイズ（任意） */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
     </style>
@@ -78,7 +77,7 @@
             8: { bg: "#e91e8c", text: "#fff", border: "#e91e8c" },
         };
 
-        const STORAGE_KEY = "keiba_eval_v2";
+        const STORAGE_KEY = "keiba_eval_v2_multirace";
         const loadState = () => {
             try { const s = localStorage.getItem(STORAGE_KEY); if (s) return JSON.parse(s); } catch(e) {}
             return null;
@@ -90,24 +89,43 @@
 
         function App() {
             const saved = loadState();
-            const [items, setItems]         = useState(saved?.items || DEFAULT_ITEMS);
-            const [marks, setMarks]         = useState(saved?.marks || {});
-            const [headCount, setHeadCount] = useState(saved?.headCount || 10);
+            const [currentRace, setCurrentRace] = useState(1);
+            const [raceData, setRaceData] = useState(saved?.raceData || {
+                1: { marks: {}, headCount: 10 },
+                2: { marks: {}, headCount: 10 },
+                3: { marks: {}, headCount: 10 }
+            });
+            const [items, setItems] = useState(saved?.items || DEFAULT_ITEMS);
+            
             const [activeTab, setActiveTab] = useState("eval");
             const [focusCat, setFocusCat]   = useState(null);
             const [showHeadPicker, setShowHeadPicker] = useState(false);
-            const [savedAt, setSavedAt]     = useState(saved?.savedAt || null);
             const [showSettings, setShowSettings] = useState(false);
             const [editItem, setEditItem]   = useState(null);
             const [newLabel, setNewLabel]   = useState("");
             const [newCat, setNewCat]       = useState("能力");
             const [confirmDialog, setConfirmDialog] = useState(null);
 
+            const marks = raceData[currentRace].marks;
+            const headCount = raceData[currentRace].headCount;
+
             useEffect(() => {
-                const now = new Date().toLocaleString("ja-JP");
-                saveState({ items, marks, headCount, savedAt: now });
-                setSavedAt(now);
-            }, [items, marks, headCount]);
+                saveState({ items, raceData });
+            }, [items, raceData]);
+
+            const setMarks = (updater) => {
+                setRaceData(prev => ({
+                    ...prev,
+                    [currentRace]: { ...prev[currentRace], marks: typeof updater === 'function' ? updater(prev[currentRace].marks) : updater }
+                }));
+            };
+
+            const setHeadCount = (val) => {
+                setRaceData(prev => ({
+                    ...prev,
+                    [currentRace]: { ...prev[currentRace], headCount: val }
+                }));
+            };
 
             const horses = Array.from({ length: headCount }, (_, i) => ({ number: i + 1 }));
 
@@ -122,7 +140,6 @@
                 .reduce((s, item) => s + (marks[num + "-" + item.id] ? item.weight : 0), 0);
 
             const ranked = [...horses].sort((a, b) => getScore(b.number) - getScore(a.number));
-
             const allScores = horses.map(h => getScore(h.number)).filter(s => s > 0).sort((a, b) => b - a);
             const maxScore    = allScores[0] || 1;
             const secondScore = allScores.find(s => s < maxScore) ?? -1;
@@ -139,17 +156,21 @@
             const confirm = (message, onOk) => setConfirmDialog({ message, onOk });
 
             const reset = () => {
-                confirm("入力内容をリセットしますか？\n（項目設定は保持されます）", () => {
+                confirm("現在選択中のレースの入力をリセットしますか？", () => {
                     setMarks({});
-                    setSavedAt(null);
                 });
             };
 
             const fullReset = () => {
                 confirm("全てリセットします。\n項目設定も初期化されます。", () => {
-                    setMarks({}); setItems(DEFAULT_ITEMS); setHeadCount(10);
+                    setRaceData({
+                        1: { marks: {}, headCount: 10 },
+                        2: { marks: {}, headCount: 10 },
+                        3: { marks: {}, headCount: 10 }
+                    });
+                    setItems(DEFAULT_ITEMS);
                     setActiveTab("eval"); setFocusCat(null);
-                    localStorage.removeItem(STORAGE_KEY); setSavedAt(null);
+                    localStorage.removeItem(STORAGE_KEY);
                 });
             };
 
@@ -161,9 +182,13 @@
             const deleteItem = (id) => {
                 confirm("この項目を削除しますか？", () => {
                     setItems(prev => prev.filter(i => i.id !== id));
-                    setMarks(prev => {
+                    setRaceData(prev => {
                         const next = { ...prev };
-                        Object.keys(next).forEach(k => { if (k.endsWith("-" + id)) delete next[k]; });
+                        [1,2,3].forEach(r => {
+                            const newMarks = { ...next[r].marks };
+                            Object.keys(newMarks).forEach(k => { if (k.endsWith("-" + id)) delete newMarks[k]; });
+                            next[r].marks = newMarks;
+                        });
                         return next;
                     });
                     if (editItem?.id === id) setEditItem(null);
@@ -198,6 +223,7 @@
                             fontSize: "12px", cursor: "pointer",
                             fontWeight: active ? "700" : "600",
                             whiteSpace: "nowrap",
+                            flex: 1,
                         }}
                     >{cat}</button>
                 );
@@ -216,16 +242,24 @@
                                 <span style={{ fontSize: "14px", fontWeight: "900", color: "#fff", whiteSpace: "nowrap" }}>競馬予想</span>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
-                                {savedAt && (
-                                    <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap", maxWidth: "90px", overflow: "hidden", textOverflow: "ellipsis" }}>💾{savedAt}</span>
-                                )}
-                                <button onClick={() => setShowSettings(true)} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "6px", color: "#fff", fontSize: "16px", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>⚙️</button>
-                                <button onClick={reset} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "6px", color: "#fff", fontSize: "12px", padding: "5px 9px", cursor: "pointer", fontWeight: "700", whiteSpace: "nowrap", flexShrink: 0 }}>リセット</button>
+                                <button onClick={() => setShowSettings(true)} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "6px", color: "#fff", fontSize: "16px", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: 0 }}>⚙️</button>
+                                <button onClick={reset} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "6px", color: "#fff", fontSize: "12px", padding: "0 9px", cursor: "pointer", fontWeight: "700", whiteSpace: "nowrap", flexShrink: 0, height: "32px" }}>リセット</button>
                             </div>
                         </div>
                     </div>
 
-                    {/* タブ */}
+                    {/* レース切り替えタブ */}
+                    <div style={{ display: "flex", background: "#f8fdf9", borderBottom: "1px solid #ddd", padding: "4px 10px", gap: "4px" }}>
+                        {[1, 2, 3].map(r => (
+                            <button key={r} onClick={() => setCurrentRace(r)} style={{
+                                flex: 1, padding: "6px", borderRadius: "4px", border: "1px solid " + (currentRace === r ? "#00693e" : "#ccc"),
+                                background: currentRace === r ? "#00693e" : "#fff", color: currentRace === r ? "#fff" : "#666",
+                                fontSize: "11px", fontWeight: "700", cursor: "pointer"
+                            }}>Race {r}</button>
+                        ))}
+                    </div>
+
+                    {/* メインタブ */}
                     <div style={{ display: "flex", background: "#fff", borderBottom: "2px solid #00693e" }}>
                         {[{ k: "eval", l: "📋 評価入力" }, { k: "result", l: "🏆 結果" }].map(t => (
                             <button key={t.k} onClick={() => setActiveTab(t.k)} style={{
@@ -242,39 +276,39 @@
                             <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #ddd", padding: "10px 12px", marginBottom: "10px" }}>
                                 <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                                     <div style={{ position: "relative", flexShrink: 0 }}>
-                                        <button onClick={() => setShowHeadPicker(p => !p)} style={{ padding: "6px 12px", background: "#00693e", border: "none", borderRadius: "6px", color: "#fff", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
+                                        <button onClick={() => setShowHeadPicker(p => !p)} style={{ padding: "6px 12px", background: "#00693e", border: "none", borderRadius: "6px", color: "#fff", fontSize: "13px", fontWeight: "700", cursor: "pointer", height: "52px" }}>
                                             {headCount}頭 ▾
                                         </button>
                                         {showHeadPicker && (
-                                            <div style={{ position: "absolute", top: "36px", left: 0, background: "#fff", border: "1px solid #ccc", borderRadius: "8px", padding: "8px", display: "flex", flexWrap: "wrap", gap: "5px", width: "190px", zIndex: 100, boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}>
+                                            <div style={{ position: "absolute", top: "56px", left: 0, background: "#fff", border: "1px solid #ccc", borderRadius: "8px", padding: "8px", display: "flex", flexWrap: "wrap", gap: "5px", width: "190px", zIndex: 100, boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}>
                                                 {[8,9,10,11,12,13,14,15,16,17,18].map(n => (
                                                     <button key={n} onClick={() => { setHeadCount(n); setShowHeadPicker(false); }} style={{ padding: "5px 9px", borderRadius: "5px", border: "1px solid #ccc", background: headCount === n ? "#00693e" : "#fff", color: headCount === n ? "#fff" : "#333", fontWeight: headCount === n ? "700" : "400", cursor: "pointer", fontSize: "13px" }}>{n}頭</button>
                                                 ))}
                                             </div>
                                         )}
                                     </div>
-                                    <div style={{ flex: 1, display: "flex", gap: "5px", alignItems: "stretch" }}>
-                                        <button
-                                            onClick={() => setFocusCat(null)}
-                                            style={{ padding: "0 12px", borderRadius: "6px", border: "none", background: !focusCat ? "#00693e" : "#e8e8e8", color: !focusCat ? "#fff" : "#555", fontSize: "13px", cursor: "pointer", fontWeight: "700", whiteSpace: "nowrap", alignSelf: "stretch", minHeight: "52px" }}
-                                        >全て</button>
-                                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
-                                            <div style={{ display: "flex", gap: "4px" }}>
-                                                <CatButton cat="能力" />
-                                                <CatButton cat="適性" />
-                                                <CatButton cat="状態" />
-                                            </div>
-                                            <div style={{ display: "flex", gap: "4px" }}>
-                                                <CatButton cat="展開" />
-                                                <CatButton cat="外部要因" />
-                                            </div>
+                                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+                                        {/* 上段 */}
+                                        <div style={{ display: "flex", gap: "4px" }}>
+                                            <button
+                                                onClick={() => setFocusCat(null)}
+                                                style={{ padding: "4px 10px", borderRadius: "4px", border: "none", background: !focusCat ? "#00693e" : "#e8e8e8", color: !focusCat ? "#fff" : "#555", fontSize: "12px", cursor: "pointer", fontWeight: "700", whiteSpace: "nowrap", flex: 1 }}
+                                            >全て</button>
+                                            <CatButton cat="能力" />
+                                            <CatButton cat="適性" />
+                                        </div>
+                                        {/* 下段 */}
+                                        <div style={{ display: "flex", gap: "4px" }}>
+                                            <CatButton cat="状態" />
+                                            <CatButton cat="展開" />
+                                            <CatButton cat="外部要因" />
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <div style={{ fontSize: "11px", color: "#888", marginBottom: "8px", paddingLeft: "2px" }}>
-                                ● = 該当あり　点数はウェイト合計　最大 {maxPossible.toFixed(1)}点
+                                ● = 該当あり　点数はウェイト合計　最大 {maxPossible.toFixed(1)}点 (Race {currentRace})
                             </div>
 
                             <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #ddd", overflow: "hidden" }}>
@@ -316,22 +350,14 @@
                                                             const cc = CAT_COLOR[item.category];
                                                             return (
                                                                 <td key={item.id} style={{ padding: "2px", borderRight: "1px solid #e8e8e8", textAlign: "center" }}>
-                                                                    <div
-                                                                        onClick={() => tap(horse.number, item.id)}
-                                                                        style={{ height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
-                                                                    >
-                                                                        {on
-                                                                            ? <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: cc.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#fff", fontWeight: "900" }}>●</span>
-                                                                            : <span style={{ width: "20px", height: "20px", display: "block" }} />
-                                                                        }
+                                                                    <div onClick={() => tap(horse.number, item.id)} style={{ height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                                                                        {on ? <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: cc.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#fff", fontWeight: "900" }}>●</span> : <span style={{ width: "20px", height: "20px" }} />}
                                                                     </div>
                                                                 </td>
                                                             );
                                                         })}
                                                         <td style={{ padding: "2px", textAlign: "center" }}>
-                                                            <div style={{ height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "900", color: scoreColor(score) }}>
-                                                                {score > 0 ? score.toFixed(1) : ""}
-                                                            </div>
+                                                            <div style={{ height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "900", color: scoreColor(score) }}>{score > 0 ? score.toFixed(1) : ""}</div>
                                                         </td>
                                                     </tr>
                                                 );
@@ -372,9 +398,7 @@
                                                         if (cs === 0) return null;
                                                         const cc = CAT_COLOR[cat];
                                                         return (
-                                                            <span key={cat} style={{ fontSize: "10px", padding: "2px 7px", background: cc.light, border: "1px solid " + cc.bg, borderRadius: "3px", color: cc.bg, fontWeight: "700" }}>
-                                                                {cat} {cs.toFixed(1)}
-                                                            </span>
+                                                            <span key={cat} style={{ fontSize: "10px", padding: "2px 7px", background: cc.light, border: "1px solid " + cc.bg, borderRadius: "3px", color: cc.bg, fontWeight: "700" }}>{cat} {cs.toFixed(1)}</span>
                                                         );
                                                     })}
                                                 </div>
@@ -394,7 +418,7 @@
                             </div>
 
                             <div style={{ background: "#fff", border: "1px solid #ddd", borderRadius: "10px", padding: "16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                                <div style={{ fontSize: "13px", fontWeight: "900", color: "#00693e", borderBottom: "2px solid #00693e", paddingBottom: "8px", marginBottom: "12px" }}>🎯 馬券の視点</div>
+                                <div style={{ fontSize: "13px", fontWeight: "900", color: "#00693e", borderBottom: "2px solid #00693e", paddingBottom: "8px", marginBottom: "12px" }}>🎯 馬券の視点 (Race {currentRace})</div>
                                 {(() => {
                                     const top = ranked.filter(h => getScore(h.number) > 0);
                                     const lbl = h => h.number + "番（" + getScore(h.number).toFixed(1) + "点）";
@@ -419,10 +443,7 @@
                     )}
 
                     {showSettings && (
-                        <div
-                            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "16px 0" }}
-                            onClick={e => { if (e.target === e.currentTarget) { setShowSettings(false); setEditItem(null); } }}
-                        >
+                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "16px 0" }} onClick={e => { if (e.target === e.currentTarget) { setShowSettings(false); setEditItem(null); } }}>
                             <div style={{ background: "#fff", borderRadius: "12px", width: "min(96vw, 560px)", overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", margin: "auto" }}>
                                 <div style={{ background: "#00693e", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <span style={{ color: "#fff", fontWeight: "900", fontSize: "15px" }}>⚙️ 項目設定</span>
@@ -440,9 +461,7 @@
                                                         {editItem?.id === item.id ? (
                                                             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                                                                 <input value={editItem.label} onChange={e => setEditItem(p => ({ ...p, label: e.target.value }))} style={{ border: "1px solid #ccc", borderRadius: "4px", padding: "5px 8px", fontSize: "13px", width: "100%", boxSizing: "border-box" }} />
-                                                                <select value={editItem.category} onChange={e => setEditItem(p => ({ ...p, category: e.target.value }))} style={{ border: "1px solid #ccc", borderRadius: "4px", padding: "5px 8px", fontSize: "13px" }}>
-                                                                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                                </select>
+                                                                <select value={editItem.category} onChange={e => setEditItem(p => ({ ...p, category: e.target.value }))} style={{ border: "1px solid #ccc", borderRadius: "4px", padding: "5px 8px", fontSize: "13px" }}>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
                                                                 <div>
                                                                     <div style={{ fontSize: "11px", color: "#666", marginBottom: "4px" }}>ウェイト: {editItem.weight.toFixed(1)}点</div>
                                                                     <input type="range" min="0" max="3" step="0.1" value={editItem.weight} onChange={e => setEditItem(p => ({ ...p, weight: parseFloat(e.target.value) }))} style={{ width: "100%", accentColor: cc.bg }} />
@@ -470,9 +489,7 @@
                                         <div style={{ fontSize: "12px", fontWeight: "900", color: "#00693e", marginBottom: "8px" }}>＋ 新しい項目を追加</div>
                                         <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
                                             <input placeholder="項目名" value={newLabel} onChange={e => setNewLabel(e.target.value)} style={{ flex: 1, border: "1px solid #ccc", borderRadius: "4px", padding: "6px 8px", fontSize: "13px" }} />
-                                            <select value={newCat} onChange={e => setNewCat(e.target.value)} style={{ border: "1px solid #ccc", borderRadius: "4px", padding: "6px 8px", fontSize: "13px" }}>
-                                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
+                                            <select value={newCat} onChange={e => setNewCat(e.target.value)} style={{ border: "1px solid #ccc", borderRadius: "4px", padding: "6px 8px", fontSize: "13px" }}>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
                                         </div>
                                         <button onClick={addItem} style={{ width: "100%", padding: "8px", background: "#00693e", border: "none", borderRadius: "6px", color: "#fff", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}>追加する</button>
                                     </div>
