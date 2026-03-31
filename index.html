@@ -215,8 +215,7 @@
               </div>
             </div>
             
-            {/* 修正：タイトル領域と隙間を開ける */}
-            <div style={{ display: "flex", padding: "8px 12px 0", gap: "8px", marginTop: "8px" }}>
+            <div style={{ display: "flex", padding: "8px 12px 0", gap: "8px" }}>
               {[1, 2, 3].map(r => (
                 <button
                   key={r}
@@ -302,8 +301,7 @@
                 <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                   <table style={{ borderCollapse: "collapse", width: "100%", tableLayout: "fixed" }}>
                     <colgroup>
-                      {/* 修正：馬番列の幅を広げて改行を防ぐ */}
-                      <col style={{ width: "76px" }} />
+                      <col style={{ width: "68px" }} />
                       {shownItems.map(item => <col key={item.id} style={{ width: focusCat ? "80px" : "46px" }} />)}
                       <col style={{ width: "42px" }} />
                     </colgroup>
@@ -328,9 +326,8 @@
                         return (
                           <tr key={horse.number} style={{ background: score > 0 ? "#f0faf3" : rowBg, borderBottom: "1px solid #e8e8e8" }}>
                             <td style={{ padding: "4px 5px", borderRight: "1px solid #e8e8e8" }}>
-                              {/* 修正：whiteSpace: "nowrap" で10番以降の改行を防止 */}
-                              <div style={{ display: "flex", alignItems: "center", gap: "4px", whiteSpace: "nowrap" }}>
-                                <span style={{ flexShrink: 0, width: "20px", height: "20px", background: wc.bg, border: "2px solid " + wc.border, borderRadius: "3px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "900", color: wc.text }}>{waku}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                <span style={{ width: "20px", height: "20px", background: wc.bg, border: "2px solid " + wc.border, borderRadius: "3px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "900", color: wc.text }}>{waku}</span>
                                 <span style={{ fontSize: "13px", fontWeight: "700" }}>{horse.number}番</span>
                               </div>
                             </td>
@@ -338,16 +335,15 @@
                               const on = !!marks[horse.number + "-" + item.id];
                               const cc = CAT_COLOR[item.category];
                               return (
-                                <td key={item.id} style={{ padding: "0", borderRight: "1px solid #e8e8e8", textAlign: "center" }}>
-                                  {/* 修正：タップ領域の高さを固定し、中の円を中央配置。マスの正方形感を維持 */}
-                                  <div onClick={() => tap(horse.number, item.id)} style={{ height: "40px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                                    {on ? <span style={{ width: "22px", height: "22px", borderRadius: "50%", background: cc.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#fff", fontWeight: "900" }}>●</span> : null}
+                                <td key={item.id} style={{ padding: "2px", borderRight: "1px solid #e8e8e8", textAlign: "center" }}>
+                                  <div onClick={() => tap(horse.number, item.id)} style={{ height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                                    {on ? <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: cc.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#fff", fontWeight: "900" }}>●</span> : null}
                                   </div>
                                 </td>
                               );
                             })}
                             <td style={{ padding: "2px", textAlign: "center" }}>
-                              <div style={{ height: "40px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "900", color: scoreColor(score) }}>
+                              <div style={{ height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "900", color: scoreColor(score) }}>
                                 {score > 0 ? score.toFixed(1) : ""}
                               </div>
                             </td>
