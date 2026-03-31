@@ -96,6 +96,7 @@
       const [activeTab, setActiveTab] = useState("eval");
       const [focusCat, setFocusCat]   = useState(null);
       const [showHeadPicker, setShowHeadPicker] = useState(false);
+      const [savedAt, setSavedAt]     = useState(saved?.savedAt || null);
       const [showSettings, setShowSettings] = useState(false);
       const [editItem, setEditItem]   = useState(null);
       const [newLabel, setNewLabel]   = useState("");
@@ -106,7 +107,9 @@
       const headCount = headCounts[currentRace] || 10;
 
       useEffect(() => {
-        saveState({ items, marksList, headCounts, currentRace });
+        const now = new Date().toLocaleString("ja-JP");
+        saveState({ items, marksList, headCounts, currentRace, savedAt: now });
+        setSavedAt(now);
       }, [items, marksList, headCounts, currentRace]);
 
       const horses = Array.from({ length: headCount }, (_, i) => ({ number: i + 1 }));
@@ -138,6 +141,7 @@
       const reset = () => {
         confirmAction(`レース${currentRace}の入力内容をリセットしますか？`, () => {
           setMarksList(p => ({ ...p, [currentRace]: {} }));
+          setSavedAt(null);
         });
       };
 
@@ -150,6 +154,7 @@
           setActiveTab("eval"); 
           setFocusCat(null);
           localStorage.removeItem(STORAGE_KEY); 
+          setSavedAt(null);
         });
       };
 
@@ -200,7 +205,7 @@
 
       return (
         <div style={{ minHeight: "100vh", background: "#f0f4f0", color: "#111", paddingBottom: "20px" }}>
-          <div style={{ background: "#00693e", paddingBottom: "12px" }}>
+          <div style={{ background: "#00693e", paddingBottom: "8px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", gap: "6px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "7px", flexShrink: 0 }}>
                 <div style={{ background: "#fff", borderRadius: "5px", padding: "3px 6px", display: "flex", alignItems: "center", gap: "4px" }}>
@@ -210,12 +215,14 @@
                 <span style={{ fontSize: "14px", fontWeight: "900", color: "#fff", whiteSpace: "nowrap" }}>競馬予想</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
+                {savedAt && <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap" }}>💾{savedAt}</span>}
                 <button onClick={() => setShowSettings(true)} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "6px", color: "#fff", fontSize: "16px", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>⚙️</button>
                 <button onClick={reset} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "6px", color: "#fff", fontSize: "12px", padding: "5px 9px", cursor: "pointer", fontWeight: "700" }}>リセット</button>
               </div>
             </div>
             
-            <div style={{ display: "flex", padding: "8px 12px 0", gap: "8px" }}>
+            {/* レースボタン（角を丸めて少し隙間を空ける） */}
+            <div style={{ display: "flex", padding: "0 12px", gap: "8px" }}>
               {[1, 2, 3].map(r => (
                 <button
                   key={r}
@@ -235,6 +242,7 @@
             </div>
           </div>
 
+          {/* 評価入力／結果ボタン（レースボタンと離し、左右に余裕を持たせる） */}
           <div style={{ marginTop: "16px", padding: "0 12px" }}>
             <div style={{ display: "flex", background: "#00693e", borderRadius: "10px", padding: "4px", gap: "4px" }}>
               {[
