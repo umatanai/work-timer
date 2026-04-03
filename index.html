@@ -23,6 +23,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // 全項目の初期ウェイトを 1.0 に統一
         const DEFAULT_ITEMS = [
             { id: "kinso",     label: "近走成績",    category: "能力",     weight: 1.0 },
             { id: "time_idx",  label: "タイム指数",  category: "能力",     weight: 1.0 },
@@ -354,8 +355,8 @@
                                                             const on = !!marks[horse.number + "-" + item.id];
                                                             const cc = CAT_COLOR[item.category];
                                                             return (
-                                                                <td key={item.id} onClick={() => tap(horse.number, item.id)} style={{ padding: "2px", borderRight: "1px solid #e8e8e8", textAlign: "center", cursor: "pointer" }}>
-                                                                    <div style={{ height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                                <td key={item.id} style={{ padding: "2px", borderRight: "1px solid #e8e8e8", textAlign: "center" }}>
+                                                                    <div onClick={() => tap(horse.number, item.id)} style={{ height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                                                                         {on ? <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: cc.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#fff", fontWeight: "900" }}>●</span> : <span style={{ width: "20px", height: "20px" }} />}
                                                                     </div>
                                                                 </td>
